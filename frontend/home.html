@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Analytics Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Add any additional CSS needed for the home page */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+            color: var(--text-light);
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(26, 188, 156, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid var(--accent);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .error-message i {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-chart-line"></i>
+            <h2>Retail Analytics</h2>
+        </div>
+        <div class="sidebar-menu">
+            <div class="menu-item active" data-page="home">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="menu-item" data-page="customers">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </div>
+            <div class="menu-item" data-page="sales">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Sales</span>
+            </div>
+            <div class="menu-item" data-page="forecasts">
+                <i class="fas fa-chart-bar"></i>
+                <span>Forecasts</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Business Overview</h1>
+            </div>
+            <!-- <div class="header-center">
+                <div class="filter-btn active">
+                    <i class="fas fa-calendar"></i>
+                    Last 30 Days
+                </div>
+                <div class="filter-btn">
+                    <i class="fas fa-tags"></i>
+                    All Categories
+                </div>
+                <div class="filter-btn">
+                    <i class="fas fa-filter"></i>
+                    All Clusters
+                </div>
+            </div> -->
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="user-profile">
+                    <div class="avatar">AD</div>
+                    <span>Admin</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content">
+            <!-- Home Page -->
+            <div class="page active" id="home">
+                <!-- KPI Cards Section -->
+                <div class="kpi-grid" id="kpi-container">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        Loading KPIs...
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Sales overview</div>
+                            <div class="chart-actions">
+                                <button class="chart-action-btn"><i class="fas fa-download"></i></button>
+                                <button class="chart-action-btn"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <div class="loading">
+                                <div class="loading-spinner"></div>
+                                Loading chart...
+                            </div>
+                            <canvas id="salesTargetChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Customer Growth Trend</div>
+                            <div class="chart-actions">
+                                <button class="chart-action-btn"><i class="fas fa-download"></i></button>
+                                <button class="chart-action-btn"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <div class="loading">
+                                <div class="loading-spinner"></div>
+                                Loading chart...
+                            </div>
+                            <canvas id="customerGrowthChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Section -->
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Top Category</div>
+                        </div>
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading category data...
+                        </div>
+                        <div id="top-category-content" style="display: none;">
+                            <div class="kpi-value" style="font-size: 1.5rem; margin-bottom: 10px;" id="top-category-name"></div>
+                            <div class="kpi-trend" id="top-category-percentage"></div>
+                            <div style="margin-top: 20px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span>Sales Progress</span>
+                                    <span id="top-category-progress-text"></span>
+                                </div>
+                                <div style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+                                    <div id="top-category-progress-bar" style="height: 100%; width: 0%; background: var(--accent);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Future analysis</div>
+                        </div>
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading forecast data...
+                        </div>
+                        <div id="preferences-content" style="display: none;">
+                            <div class="kpi-value" style="font-size: 1.5rem; margin-bottom: 10px;" id="preference-name"></div>
+                            <div class="kpi-trend" id="preference-percentage"></div>
+                            <div style="margin-top: 20px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span>Overall Growth</span>
+                                    <span id="preference-growth-text"></span>
+                                </div>
+                                <div style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+                                    <div id="preference-growth-bar" style="height: 100%; width: 0%; background: var(--accent);"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© Retail Analytics 2025 | All Rights Reserved</p>
+        </div>
+    </div>
+    <script src="main.js"></script>
+     <script>
+        // API endpoints
+        const API_BASE = 'http://localhost:5000'; // Update with your backend URL
+        const KPI_API = `${API_BASE}/api/analytics/kpis`;
+        const TRENDS_API = `${API_BASE}/api/analytics/trends`;
+        const TOP_CATEGORIES_API = `${API_BASE}/api/products/top/categories`;
+        const FORECAST_API = `${API_BASE}/api/ml/forecast?periods=12`;
+
+        // Chart instances
+        let salesTargetChart = null;
+        let customerGrowthChart = null;
+
+        // DOM elements
+        const kpiContainer = document.getElementById('kpi-container');
+        const topCategoryContent = document.getElementById('top-category-content');
+        const preferencesContent = document.getElementById('preferences-content');
+
+        // Load data when the page is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHomePageData();
+            
+            // Set up navigation
+            setupNavigation();
+        });
+
+        // Function to load all home page data
+        async function loadHomePageData() {
+            try {
+                // Load KPIs
+                await loadKPIs();
+                
+                // Load trends data
+                await loadTrendsData();
+                
+                // Load top category data
+                await loadTopCategoryData();
+                
+                // Load forecast data for growth rate
+                await loadForecastData();
+                
+            } catch (error) {
+                console.error('Error loading home page data:', error);
+                showError('Failed to load dashboard data. Please try again later.');
+            }
+        }
+
+        // Function to load KPI data
+        async function loadKPIs() {
+            try {
+                const response = await fetch(KPI_API);
+                const result = await response.json();
+                console.log("KPIs raw:", result); // 🔍 log to verify
+
+                // Transform backend data into frontend expected format
+                const kpiData = [
+                    { title: "Revenue", value: `₹${result.data.totalRevenue.toLocaleString()}`, trend: "+0%" },
+                    { title: "Customers", value: result.data.totalCustomers.toLocaleString(), trend: "+0%" },
+                    { title: "Transactions", value: result.data.totalTransactions.toLocaleString(), trend: "+0%" },
+                    { title: "Average Order Value", value: `₹${result.data.averageOrderValue.toFixed(2)}`, trend: "+0%" },
+                    { title: "Products", value: result.data.totalProducts, trend: "+0%" }
+                ];
+
+                kpiContainer.innerHTML = '';
+                kpiData.forEach(kpi => {
+                    const kpiCard = createKPICard(kpi);
+                    kpiContainer.appendChild(kpiCard);
+                });
+
+            } catch (error) {
+                console.error('Error loading KPIs:', error);
+                showEmptyState(kpiContainer, 'Failed to load KPI data');
+            }
+        }
+
+        function createKPICard(kpi) {
+            const card = document.createElement('div');
+            card.className = 'kpi-card';
+            
+            // Determine icon based on KPI type
+            let iconClass = 'fas fa-chart-line';
+            if (kpi.title && kpi.title.includes('Revenue')) iconClass = 'fas fa-rupee-sign';
+            if (kpi.title && kpi.title.includes('Customers')) iconClass = 'fas fa-users';
+            if (kpi.title && kpi.title.includes('Transactions')) iconClass = 'fas fa-shopping-cart';
+            if (kpi.title && kpi.title.includes('Order Value')) iconClass = 'fas fa-receipt';
+            if (kpi.title && kpi.title.includes('Products ')) iconClass = 'fas fa-box-open';
+
+            // Determine trend direction
+            const trendClass = kpi.trend && kpi.trend.includes('-') ? 'negative' : '';
+            const trendIcon = kpi.trend && kpi.trend.includes('-') ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
+            
+            card.innerHTML = `
+                <div class="kpi-header">
+                    <div class="kpi-title">${kpi.title || 'N/A'}</div>
+                    <div class="kpi-icon">
+                        <i class="${iconClass}"></i>
+                    </div>
+                </div>
+                <div class="kpi-value">${kpi.value || 'N/A'}</div>
+                <div class="kpi-trend ${trendClass}">
+                    <i class="${trendIcon}"></i>
+                    <span>${kpi.trend || 'No data'}</span>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Function to load trends data
+        async function loadTrendsData() {
+            try {
+                const response = await fetch(TRENDS_API);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                console.log("Trends data:", result); // Debug log
+
+                // Hide loading indicators
+                document.querySelectorAll('.chart-wrapper .loading').forEach(el => {
+                    el.style.display = 'none';
+                });
+
+                if (result.success && result.data && result.data.length > 0) {
+                    const labels = result.data.map(item => `${item.year}-${item.month.toString().padStart(2, '0')}`);
+                    const revenueData = result.data.map(item => parseFloat(item.revenue));
+                    const transactionsData = result.data.map(item => parseInt(item.transactions));
+                    const avgOrderData = result.data.map(item => parseFloat(item.avg_order_value));
+
+                    // Sales vs Target chart (Revenue as example)
+                    const salesTargetCtx = document.getElementById('salesTargetChart').getContext('2d');
+                    if (salesTargetChart) salesTargetChart.destroy();
+                    salesTargetChart = new Chart(salesTargetCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Revenue',
+                                    data: revenueData,
+                                    backgroundColor: 'rgba(26, 188, 156, 0.7)',
+                                    borderColor: 'rgba(26, 188, 156, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Average Order Value',
+                                    data: avgOrderData,
+                                    type: 'line',
+                                    fill: false,
+                                    borderColor: 'rgba(52, 152, 219, 1)',
+                                    borderWidth: 2,
+                                    pointRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
+                            }
+                        }
+                    });
+
+                    // Customer growth chart (Transactions as example)
+                    const customerGrowthCtx = document.getElementById('customerGrowthChart').getContext('2d');
+                    if (customerGrowthChart) customerGrowthChart.destroy();
+                    customerGrowthChart = new Chart(customerGrowthCtx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Transactions',
+                                    data: transactionsData,
+                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                    borderColor: 'rgba(52, 152, 219, 1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    console.warn('No trends data available');
+                    showEmptyChartState();
+                }
+
+            } catch (error) {
+                console.error('Error loading trends data:', error);
+                document.querySelectorAll('.chart-wrapper .loading').forEach(el => {
+                    el.style.display = 'none';
+                });
+                showEmptyChartState();
+            }
+        }
+
+        // Function to load top category data
+        async function loadTopCategoryData() {
+            try {
+                const response = await fetch(TOP_CATEGORIES_API);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                console.log("Top categories data:", result); // Debug log
+
+                // Hide loading indicator
+                document.querySelector('#top-category-content').previousElementSibling.style.display = 'none';
+
+                // Show top category container
+                topCategoryContent.style.display = 'block';
+
+                if (result.success && result.data && result.data.length > 0) {
+                    const topCategory = result.data[0]; // Most popular category
+
+                    document.getElementById('top-category-name').textContent = topCategory.category || 'N/A';
+                    document.getElementById('top-category-percentage').textContent = 
+                        `${parseFloat(topCategory.total_revenue).toLocaleString()} revenue`;
+
+                    // Example: calculate progress percentage (relative to top revenue)
+                   const totalRevenue = result.data.reduce((sum, cat) => sum + parseFloat(cat.total_revenue), 0);
+const progressPercentage = (parseFloat(topCategory.total_revenue) / totalRevenue * 100).toFixed(2);
+
+                    document.getElementById('top-category-progress-text').textContent = `${progressPercentage}%`;
+                    document.getElementById('top-category-progress-bar').style.width = `${progressPercentage}%`;
+
+                } else {
+                    showEmptyState(topCategoryContent, 'No category data available');
+                }
+
+            } catch (error) {
+                console.error('Error loading top category data:', error);
+                // Hide loading indicator
+                document.querySelector('#top-category-content').previousElementSibling.style.display = 'none';
+                // Show empty state
+                showEmptyState(topCategoryContent, 'Failed to load category data');
+            }
+        }
+
+        // Function to load forecast data
+        async function loadForecastData() {
+            try {
+                const response = await fetch(FORECAST_API);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                console.log("Forecast data:", result); // Debug log
+
+                // Hide loading indicator
+                const forecastLoading = document.querySelector('#preferences-content').previousElementSibling;
+                if (forecastLoading) {
+                    forecastLoading.style.display = 'none';
+                }
+
+                // Show preferences container
+                preferencesContent.style.display = 'block';
+
+                if (result.success && result.data && result.data.length > 0) {
+                    // Calculate growth rate from forecast data
+                    const historicalData = result.data.filter(item => item.type === 'historical');
+                    const forecastData = result.data.filter(item => item.type === 'forecast');
+                    
+                    if (historicalData.length > 0 && forecastData.length > 0) {
+                        const lastHistorical = historicalData[historicalData.length - 1].sales;
+                        const firstForecast = forecastData[0].sales;
+                        const growthRate = ((firstForecast - lastHistorical) / lastHistorical * 100).toFixed(2);
+                        
+                        document.getElementById('preference-name').textContent = 'Forecast Growth';
+                        document.getElementById('preference-percentage').textContent = `${growthRate}%`;
+                        
+                        // Set progress bar based on growth rate
+                        const progressPercentage = Math.min(Math.max(growthRate, 0), 100);
+                        document.getElementById('preference-growth-text').textContent = `${progressPercentage}%`;
+                        document.getElementById('preference-growth-bar').style.width = `${progressPercentage}%`;
+                    }
+                } else {
+                    showEmptyState(preferencesContent, 'No forecast data available');
+                }
+
+            } catch (error) {
+                console.error('Error loading forecast data:', error);
+                // Hide loading indicator
+                const forecastLoading = document.querySelector('#preferences-content').previousElementSibling;
+                if (forecastLoading) {
+                    forecastLoading.style.display = 'none';
+                }
+                // Show empty state
+                showEmptyState(preferencesContent, 'Failed to load forecast data');
+            }
+        }
+
+        // Function to show empty state
+        function showEmptyState(container, message) {
+            container.innerHTML = `
+                <div class="empty-state" style="text-align: center; padding: 40px; color: var(--text-light);">
+                    <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Function to show empty chart state
+        function showEmptyChartState() {
+            showEmptyChart('salesTargetChart', 'No chart data available');
+            showEmptyChart('customerGrowthChart', 'No chart data available');
+        }
+
+        // Function to show empty chart
+        function showEmptyChart(canvasId, message) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#7f8c8d';
+            ctx.textAlign = 'center';
+            ctx.fillText(message, ctx.canvas.width / 2, ctx.canvas.height / 2);
+        }
+
+        // Function to show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${message}</span>
+            `;
+            
+            // Insert at the top of the content area
+            const content = document.querySelector('.content');
+            content.insertBefore(errorDiv, content.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.parentNode.removeChild(errorDiv);
+                }
+            }, 5000);
+        }
+
+        // Setup navigation
+        function setupNavigation() {
+            const menuItems = document.querySelectorAll('.menu-item');
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const sidebar = document.querySelector('.sidebar');
+            
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const pageId = this.getAttribute('data-page');
+                    
+                    // Update active menu item
+                    menuItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Redirect to the corresponding page
+                    if (pageId === 'home') {
+                        window.location.href = 'home.html';
+                    } else if (pageId === 'customers') {
+                        window.location.href = 'customersegmentation.html';
+                    } else if (pageId === 'sales') {
+                        window.location.href = 'sales.html';
+                    } else if (pageId === 'forecasts') {
+                        window.location.href = 'Forecast.html';
+                    }
+                    
+                    // Close sidebar on mobile after selection
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Mobile menu toggle
+            mobileMenuBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+            
+            // Filter buttons
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        }
+    </script>
+</body>
+</html>

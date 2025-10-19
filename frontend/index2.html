@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Analytics Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --primary-light: #34495e;
+            --accent: #1abc9c;
+            --accent-dark: #16a085;
+            --background: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #e9ecef;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background: var(--primary);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            transition: var(--transition);
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-header h2 {
+            font-weight: 600;
+            font-size: 1.4rem;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            border-left: 4px solid transparent;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--accent);
+        }
+
+        .menu-item i {
+            width: 24px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            transition: var(--transition);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styles */
+        .header {
+            background: var(--card-bg);
+            padding: 18px 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .header-left h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .header-center {
+            display: flex;
+            gap: 15px;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            background: var(--background);
+            border-color: var(--accent);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 15px 10px 40px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--background);
+            width: 220px;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border-left: 4px solid var(--accent);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .kpi-title {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(26, 188, 156, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .kpi-trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            color: #27ae60;
+        }
+
+        .kpi-trend.negative {
+            color: #e74c3c;
+        }
+
+        /* Chart Containers */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 5px;
+        }
+
+        .chart-action-btn:hover {
+            color: var(--accent);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Table Styles */
+        .table-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 16px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: rgba(26, 188, 156, 0.03);
+        }
+
+        .cluster-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .cluster-high-value {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+        }
+
+        .cluster-loyal {
+            background: rgba(52, 152, 219, 0.1);
+            color: #2980b9;
+        }
+
+        .cluster-new {
+            background: rgba(241, 196, 15, 0.1);
+            color: #f39c12;
+        }
+
+        .cluster-at-risk {
+            background: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+        }
+
+        /* Footer Styles */
+        .footer {
+            background: var(--card-bg);
+            padding: 20px 30px;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Toggle Buttons */
+        .toggle-buttons {
+            display: flex;
+            background: var(--background);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 24px;
+            width: fit-content;
+        }
+
+        .toggle-btn {
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+        }
+
+        .toggle-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 80px;
+            }
+            
+            .sidebar-header h2, .menu-item span {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+            }
+            
+            .menu-item {
+                justify-content: center;
+                padding: 16px 0;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .header {
+                padding: 15px 20px;
+            }
+            
+            .header-center {
+                display: none;
+            }
+            
+            .search-box input {
+                width: 180px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-wrapper {
+                height: 250px;
+            }
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-chart-line"></i>
+            <h2>Retail Analytics</h2>
+        </div>
+        <div class="sidebar-menu">
+            <div class="menu-item active" data-page="home">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="menu-item" data-page="customers">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </div>
+            <div class="menu-item" data-page="sales">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Sales</span>
+            </div>
+            <div class="menu-item" data-page="forecasts">
+                <i class="fas fa-chart-bar"></i>
+                <span>Forecasts</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Business Overview</h1>
+            </div>
+            <div class="header-center">
+                <div class="filter-btn active">
+                    <i class="fas fa-calendar"></i>
+                    Last 30 Days
+                </div>
+                <div class="filter-btn">
+                    <i class="fas fa-tags"></i>
+                    All Categories
+                </div>
+                <div class="filter-btn">
+                    <i class="fas fa-filter"></i>
+                    All Clusters
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="user-profile">
+                    <div class="avatar">JD</div>
+                    <span>John Doe</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content">
+            <!-- Home Page -->
+            <div class="page active" id="home">
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Total Revenue</div>
+                            <div class="kpi-icon">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">$248,560</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>12.5% vs last month</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Total Customers</div>
+                            <div class="kpi-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">12,845</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>5.2% vs last month</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Avg Order Value</div>
+                            <div class="kpi-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">$124.50</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>3.8% vs last month</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Growth Rate</div>
+                            <div class="kpi-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">18.3%</div>
+                        <div class="kpi-trend">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>2.1% vs last month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Sales vs Target</div>
+                            <div class="chart-actions">
+                                <button class="chart-action-btn"><i class="fas fa-download"></i></button>
+                                <button class="chart-action-btn"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="salesTargetChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Customer Growth Trend</div>
+                            <div class="chart-actions">
+                                <button class="chart-action-btn"><i class="fas fa-download"></i></button>
+                                <button class="chart-action-btn"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="customerGrowthChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Top Category</div>
+                        </div>
+                        <div class="kpi-value" style="font-size: 1.5rem; margin-bottom: 10px;">Electronics</div>
+                        <div class="kpi-trend">
+                            <span>32% of total revenue</span>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>Sales Progress</span>
+                                <span>78%</span>
+                            </div>
+                            <div style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: 78%; background: var(--accent);"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Customer Preferences</div>
+                        </div>
+                        <div class="kpi-value" style="font-size: 1.5rem; margin-bottom: 10px;">Premium Products</div>
+                        <div class="kpi-trend">
+                            <span>45% of customers prefer premium</span>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>Preference Growth</span>
+                                <span>+18%</span>
+                            </div>
+                            <div style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: 65%; background: var(--accent);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers Page -->
+            <div class="page" id="customers">
+                <div class="chart-header" style="margin-bottom: 24px;">
+                    <div class="chart-title">Customer Segmentation</div>
+                    <div class="header-center">
+                        <div class="filter-btn active">All Clusters</div>
+                        <div class="filter-btn">High Value</div>
+                        <div class="filter-btn">Loyal</div>
+                        <div class="filter-btn">New</div>
+                        <div class="filter-btn">At Risk</div>
+                    </div>
+                </div>
+
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">High Value</div>
+                            <div class="kpi-icon" style="background: rgba(46, 204, 113, 0.1); color: #27ae60;">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">2,450</div>
+                        <div class="kpi-trend">
+                            <span>Avg Spend: $420</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Loyal</div>
+                            <div class="kpi-icon" style="background: rgba(52, 152, 219, 0.1); color: #2980b9;">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">4,120</div>
+                        <div class="kpi-trend">
+                            <span>Avg Spend: $185</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">New</div>
+                            <div class="kpi-icon" style="background: rgba(241, 196, 15, 0.1); color: #f39c12;">
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">1,780</div>
+                        <div class="kpi-trend">
+                            <span>Avg Spend: $95</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">At Risk</div>
+                            <div class="kpi-icon" style="background: rgba(231, 76, 60, 0.1); color: #c0392b;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">890</div>
+                        <div class="kpi-trend negative">
+                            <span>Avg Spend: $65</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Customer Distribution</div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="customerDistributionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Top Customers</div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Cluster</th>
+                                        <th>Total Spend</th>
+                                        <th>Recency</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Sarah Johnson</td>
+                                        <td><span class="cluster-badge cluster-high-value">High Value</span></td>
+                                        <td>$12,450</td>
+                                        <td>2 days</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Michael Chen</td>
+                                        <td><span class="cluster-badge cluster-high-value">High Value</span></td>
+                                        <td>$10,890</td>
+                                        <td>5 days</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Emily Rodriguez</td>
+                                        <td><span class="cluster-badge cluster-loyal">Loyal</span></td>
+                                        <td>$8,750</td>
+                                        <td>1 day</td>
+                                    </tr>
+                                    <tr>
+                                        <td>David Wilson</td>
+                                        <td><span class="cluster-badge cluster-loyal">Loyal</span></td>
+                                        <td>$7,920</td>
+                                        <td>3 days</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Jennifer Lee</td>
+                                        <td><span class="cluster-badge cluster-new">New</span></td>
+                                        <td>$1,250</td>
+                                        <td>1 day</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Page -->
+            <div class="page" id="sales">
+                <div class="chart-header" style="margin-bottom: 24px;">
+                    <div class="chart-title">Sales Analysis</div>
+                    <div class="header-center">
+                        <div class="filter-btn active">Last 30 Days</div>
+                        <div class="filter-btn">Last Quarter</div>
+                        <div class="filter-btn">Last Year</div>
+                        <div class="filter-btn">Custom Range</div>
+                    </div>
+                </div>
+
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Sales Trend</div>
+                            <div class="chart-actions">
+                                <button class="chart-action-btn"><i class="fas fa-download"></i></button>
+                                <button class="chart-action-btn"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="salesTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Top Product Categories</div>
+                            <div class="chart-actions">
+                                <button class="chart-action-btn"><i class="fas fa-download"></i></button>
+                                <button class="chart-action-btn"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="topCategoriesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">Sales by Category & Customer Preference</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="salesHeatmapChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forecasts Page -->
+            <div class="page" id="forecasts">
+                <div class="chart-header" style="margin-bottom: 24px;">
+                    <div class="chart-title">Sales Forecast</div>
+                    <div class="toggle-buttons">
+                        <button class="toggle-btn active">Total Forecast</button>
+                        <button class="toggle-btn">Category-level Forecast</button>
+                    </div>
+                </div>
+
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Projected Growth</div>
+                            <div class="kpi-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">14.2%</div>
+                        <div class="kpi-trend">
+                            <span>Next 3 months</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Next Month Forecast</div>
+                            <div class="kpi-icon">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">$285,400</div>
+                        <div class="kpi-trend">
+                            <span>± $12,500</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-title">Model Accuracy</div>
+                            <div class="kpi-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">94.7%</div>
+                        <div class="kpi-trend">
+                            <span>Based on historical data</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">Sales Forecast with Confidence Interval</div>
+                        <div class="chart-actions">
+                            <button class="chart-action-btn"><i class="fas fa-download"></i></button>
+                            <button class="chart-action-btn"><i class="fas fa-expand"></i></button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© Retail Analytics 2025 | All Rights Reserved</p>
+        </div>
+    </div>
+
+    <script>
+        // Navigation functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Page navigation
+            const menuItems = document.querySelectorAll('.menu-item');
+            const pages = document.querySelectorAll('.page');
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const sidebar = document.querySelector('.sidebar');
+            
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const pageId = this.getAttribute('data-page');
+                    
+                    // Update active menu item
+                    menuItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show corresponding page
+                    pages.forEach(page => page.classList.remove('active'));
+                    document.getElementById(pageId).classList.add('active');
+                    
+                    // Update header title
+                    const headerTitle = document.querySelector('.header-left h1');
+                    headerTitle.textContent = getPageTitle(pageId);
+                    
+                    // Close sidebar on mobile after selection
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Mobile menu toggle
+            mobileMenuBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+            
+            // Filter buttons
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // Toggle buttons
+            const toggleBtns = document.querySelectorAll('.toggle-btn');
+            toggleBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    toggleBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // Initialize charts
+            initializeCharts();
+        });
+        
+        function getPageTitle(pageId) {
+            const titles = {
+                'home': 'Business Overview',
+                'customers': 'Customer Segmentation',
+                'sales': 'Sales Analysis',
+                'forecasts': 'Sales Forecast'
+            };
+            return titles[pageId] || 'Retail Analytics';
+        }
+        
+        function initializeCharts() {
+            // Sales vs Target Chart
+            const salesTargetCtx = document.getElementById('salesTargetChart').getContext('2d');
+            new Chart(salesTargetCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [
+                        {
+                            label: 'Sales',
+                            data: [120, 150, 180, 200, 220, 240],
+                            backgroundColor: 'rgba(26, 188, 156, 0.7)',
+                            borderColor: 'rgba(26, 188, 156, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Target',
+                            data: [130, 140, 170, 190, 210, 230],
+                            type: 'line',
+                            fill: false,
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            borderWidth: 2,
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Customer Growth Chart
+            const customerGrowthCtx = document.getElementById('customerGrowthChart').getContext('2d');
+            new Chart(customerGrowthCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Customer Growth',
+                        data: [8500, 9200, 9800, 10500, 11200, 12000],
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderColor: 'rgba(52, 152, 219, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Customer Distribution Chart
+            const customerDistributionCtx = document.getElementById('customerDistributionChart').getContext('2d');
+            new Chart(customerDistributionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Value', 'Loyal', 'New', 'At Risk'],
+                    datasets: [{
+                        data: [2450, 4120, 1780, 890],
+                        backgroundColor: [
+                            'rgba(46, 204, 113, 0.7)',
+                            'rgba(52, 152, 219, 0.7)',
+                            'rgba(241, 196, 15, 0.7)',
+                            'rgba(231, 76, 60, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(46, 204, 113, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(241, 196, 15, 1)',
+                            'rgba(231, 76, 60, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+            
+            // Sales Trend Chart
+            const salesTrendCtx = document.getElementById('salesTrendChart').getContext('2d');
+            new Chart(salesTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+                    datasets: [{
+                        label: 'Sales',
+                        data: [45000, 52000, 48000, 61000, 58000],
+                        backgroundColor: 'rgba(26, 188, 156, 0.1)',
+                        borderColor: 'rgba(26, 188, 156, 1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Top Categories Chart
+            const topCategoriesCtx = document.getElementById('topCategoriesChart').getContext('2d');
+            new Chart(topCategoriesCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Electronics', 'Fashion', 'Home', 'Sports', 'Beauty'],
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: [45000, 38000, 32000, 21000, 15000],
+                        backgroundColor: [
+                            'rgba(26, 188, 156, 0.7)',
+                            'rgba(52, 152, 219, 0.7)',
+                            'rgba(155, 89, 182, 0.7)',
+                            'rgba(241, 196, 15, 0.7)',
+                            'rgba(230, 126, 34, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(26, 188, 156, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(155, 89, 182, 1)',
+                            'rgba(241, 196, 15, 1)',
+                            'rgba(230, 126, 34, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // Forecast Chart
+            const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+            new Chart(forecastCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                    datasets: [
+                        {
+                            label: 'Historical',
+                            data: [120, 150, 180, 200, 220, 240, null, null, null],
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Forecast',
+                            data: [null, null, null, null, null, 240, 260, 275, 290],
+                            borderColor: 'rgba(26, 188, 156, 1)',
+                            borderWidth: 3,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Confidence Interval',
+                            data: [null, null, null, null, null, 240, 255, 265, 280],
+                            backgroundColor: 'rgba(26, 188, 156, 0.1)',
+                            borderColor: 'transparent',
+                            fill: '-1',
+                            tension: 0.4
+                        },
+                        {
+                            label: '',
+                            data: [null, null, null, null, null, 240, 265, 285, 300],
+                            backgroundColor: 'rgba(26, 188, 156, 0.1)',
+                            borderColor: 'transparent',
+                            fill: '-1',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+            
+            // Sales Heatmap Chart
+            const salesHeatmapCtx = document.getElementById('salesHeatmapChart').getContext('2d');
+            new Chart(salesHeatmapCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Electronics', 'Fashion', 'Home', 'Sports', 'Beauty'],
+                    datasets: [
+                        {
+                            label: 'Premium',
+                            data: [65, 59, 80, 81, 56],
+                            backgroundColor: 'rgba(26, 188, 156, 0.7)',
+                        },
+                        {
+                            label: 'Standard',
+                            data: [28, 48, 40, 19, 86],
+                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                        },
+                        {
+                            label: 'Budget',
+                            data: [55, 25, 50, 30, 70],
+                            backgroundColor: 'rgba(155, 89, 182, 0.7)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

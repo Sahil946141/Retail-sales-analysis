@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Segmentation - Retail Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --primary-light: #34495e;
+            --accent: #1abc9c;
+            --accent-dark: #16a085;
+            --background: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #e9ecef;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background: var(--primary);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            transition: var(--transition);
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-header h2 {
+            font-weight: 600;
+            font-size: 1.4rem;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            border-left: 4px solid transparent;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--accent);
+        }
+
+        .menu-item i {
+            width: 24px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            transition: var(--transition);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styles */
+        .header {
+            background: var(--card-bg);
+            padding: 18px 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .header-left h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .header-center {
+            display: flex;
+            gap: 15px;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            background: var(--background);
+            border-color: var(--accent);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 15px 10px 40px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--background);
+            width: 220px;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border-left: 4px solid var(--accent);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .kpi-title {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(26, 188, 156, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .kpi-trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            color: #27ae60;
+        }
+
+        .kpi-trend.negative {
+            color: #e74c3c;
+        }
+
+        /* Chart Containers */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 5px;
+        }
+
+        .chart-action-btn:hover {
+            color: var(--accent);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Table Styles */
+        .table-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 16px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: rgba(26, 188, 156, 0.03);
+        }
+
+        .cluster-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .cluster-high-value {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+        }
+
+        .cluster-loyal {
+            background: rgba(52, 152, 219, 0.1);
+            color: #2980b9;
+        }
+
+        .cluster-new {
+            background: rgba(241, 196, 15, 0.1);
+            color: #f39c12;
+        }
+
+        .cluster-at-risk {
+            background: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+        }
+
+        /* Footer Styles */
+        .footer {
+            background: var(--card-bg);
+            padding: 20px 30px;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Loading and Error States */
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(26, 188, 156, 0.2);
+            border-top: 5px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .error-state i {
+            font-size: 3rem;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+
+        /* Revenue Percentage Badge */
+        .revenue-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(26, 188, 156, 0.1);
+            color: var(--accent);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 80px;
+            }
+            
+            .sidebar-header h2, .menu-item span {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+            }
+            
+            .menu-item {
+                justify-content: center;
+                padding: 16px 0;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .header {
+                padding: 15px 20px;
+            }
+            
+            .header-center {
+                display: none;
+            }
+            
+            .search-box input {
+                width: 180px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-wrapper {
+                height: 250px;
+            }
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-chart-line"></i>
+            <h2>Retail Analytics</h2>
+        </div>
+        <div class="sidebar-menu">
+            <div class="menu-item" data-page="home">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="menu-item active" data-page="customers">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </div>
+            <div class="menu-item" data-page="sales">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Sales</span>
+            </div>
+            <div class="menu-item" data-page="forecasts">
+                <i class="fas fa-chart-bar"></i>
+                <span>Forecasts</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Customer Segmentation</h1>
+            </div>
+            <!-- <div class="header-center">
+                <div class="filter-btn active" data-cluster="all">
+                    All Clusters
+                </div>
+                <div class="filter-btn" data-cluster="0">
+                    High Value
+                </div>
+                <div class="filter-btn" data-cluster="1">
+                    Loyal
+                </div>
+                <div class="filter-btn" data-cluster="2">
+                    New
+                </div>
+                <div class="filter-btn" data-cluster="3">
+                    At Risk
+                </div>
+            </div> -->
+            <div class="header-right">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search customers..." id="customerSearch">
+                </div>
+                <div class="user-profile">
+                    <div class="avatar">AD</div>
+                    <span>Admin</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content">
+            <!-- Customer Segmentation Page Content -->
+            <div class="page active" id="customers">
+                <!-- Loading State -->
+                <div id="loadingState" class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading customer data...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="error-state" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Failed to load customer data</h3>
+                    <p>Please try refreshing the page or check your connection.</p>
+                    <button id="retryButton" class="filter-btn active" style="margin-top: 20px;">
+                        <i class="fas fa-redo"></i>
+                        Retry
+                    </button>
+                </div>
+
+                <!-- Data Content -->
+                <div id="dataContent" style="display: none;">
+                    <div class="kpi-grid" id="clusterKpis">
+                        <!-- Dynamic KPI cards will be inserted here -->
+                    </div>
+
+                    <div class="chart-grid">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div class="chart-title">Customer Distribution</div>
+                                <div class="chart-actions">
+                                    <button class="chart-action-btn" onclick="exportChart('customerDistributionChart', 'customer-distribution.png')">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <button class="chart-action-btn" onclick="toggleFullscreen('customerDistributionChart')">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="customerDistributionChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div class="chart-title">Revenue Contribution by Segment</div>
+                                <div class="chart-actions">
+                                    <button class="chart-action-btn" onclick="exportChart('revenueChart', 'revenue-contribution.png')">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <button class="chart-action-btn" onclick="toggleFullscreen('revenueChart')">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">Top Customers</div>
+                            <div class="header-center">
+                                <div class="filter-btn active" data-cluster="all">All Clusters</div>
+                                <div class="filter-btn" data-cluster="0">High Value</div>
+                                <div class="filter-btn" data-cluster="1">Loyal</div>
+                                <div class="filter-btn" data-cluster="2">New</div>
+                                <div class="filter-btn" data-cluster="3">At Risk</div>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table id="topCustomersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Customer Code</th>
+                                        <th>Gender</th>
+                                        <th>Age</th>
+                                        <th>Total Spend (₹)</th>
+                                        <th>Total Orders</th>
+                                        <th>Avg Order (₹)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topCustomersBody">
+                                    <!-- Dynamic table rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© Retail Analytics 2025 | All Rights Reserved</p>
+        </div>
+    </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // =========================
+    // CUSTOMER SEGMENTATION DASHBOARD JS
+    // =========================
+
+    // === API Endpoints ===
+    const CLUSTERS_API = "http://localhost:5000/api/ml/clusters";
+    const CUSTOMERS_API = "http://localhost:5000/api/customers";
+    const TOP_CUSTOMERS_API = "http://localhost:5000/api/analytics/top-customers";
+
+    // === Global Variables ===
+    let customerData = {
+        clusters: [],
+        allCustomers: [],
+        topCustomers: []
+    };
+    let currentClusterFilter = 'all';
+    
+    // Chart instances
+    let customerDistributionChart = null;
+    let revenueChart = null;
+
+    // =========================
+    // MAIN LOAD FUNCTION
+    // =========================
+    async function loadCustomerSegmentationData() {
+        try {
+            showLoadingState();
+            await loadCustomerData();
+            hideLoadingState();
+            showDataContent();
+        } catch (error) {
+            console.error("Error loading customer segmentation data:", error);
+            showErrorState();
+        }
+    }
+
+    // =========================
+    // CUSTOMER DATA SECTION
+    // =========================
+   async function loadCustomerData() {
+    try {
+        console.log("Loading customer data...");
+
+        const [clustersResponse, customersResponse] = await Promise.all([
+            fetch(CLUSTERS_API).catch(err => {
+                console.error('Clusters API fetch failed:', err);
+                throw new Error('Failed to fetch clusters data');
+            }),
+            fetch(CUSTOMERS_API).catch(err => {
+                console.error('Customers API fetch failed:', err);
+                throw new Error('Failed to fetch customers data');
+            })
+        ]);
+
+        if (!clustersResponse.ok) {
+            throw new Error(`Clusters API error: ${clustersResponse.status}`);
+        }
+        if (!customersResponse.ok) {
+            throw new Error(`Customers API error: ${customersResponse.status}`);
+        }
+
+        const clustersResult = await clustersResponse.json();
+        const customersResult = await customersResponse.json();
+
+        console.log('Clusters API response:', clustersResult);
+        console.log('Customers API response:', customersResult);
+
+        // Fix: get the array from nested "clusters" property
+        const clustersArray = clustersResult.data?.clusters?.clusters || [];
+        customerData.clusters = transformClustersData(clustersArray);
+
+        console.log('Transformed clusters for charts:', customerData.clusters);
+
+        // Store all customers
+        customerData.allCustomers = customersResult.data || [];
+
+        // Load top customers (your existing function, unchanged)
+        await loadTopCustomers('all');
+
+        // Render charts & KPIs
+        renderCustomerSegmentation();
+
+    } catch (error) {
+        console.error("Error in loadCustomerData:", error);
+        throw error;
+    }
+}
+
+
+    // =========================
+    // LOAD TOP CUSTOMERS BY CLUSTER
+    // =========================
+    async function loadTopCustomers(cluster) {
+        try {
+            const url = cluster === 'all' 
+                ? `${TOP_CUSTOMERS_API}?limit=10`
+                : `${TOP_CUSTOMERS_API}?limit=10&cluster=${cluster}`;
+            
+            console.log('Loading top customers from:', url);
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Top Customers API error: ${response.status}`);
+            
+            const result = await response.json();
+            customerData.topCustomers = result.data || [];
+            
+            console.log('Top customers loaded:', customerData.topCustomers.length);
+            
+            renderTopCustomersTable();
+            
+        } catch (error) {
+            console.error('Error loading top customers:', error);
+            customerData.topCustomers = [];
+            renderTopCustomersTable();
+        }
+    }
+
+    // =========================
+    // TRANSFORM CLUSTER DATA
+    // =========================
+    function transformClustersData(clustersData) {
+    console.log('Raw clusters data for transformation:', clustersData);
+
+    if (!clustersData || !clustersData.length) {
+        console.warn('No cluster data available for transformation');
+        return [];
+    }
+
+    const clusterNames = {
+        0: "High-Value",
+        1: "Loyal Customers",
+        2: "New Customers",
+        3: "At-Risk"
+    };
+
+    const clusterColors = {
+        0: "#2ecc71",
+        1: "#3498db",
+        2: "#f39c12",
+        3: "#e74c3c"
+    };
+
+    const clusterIcons = {
+        0: "fa-crown",
+        1: "fa-heart",
+        2: "fa-star",
+        3: "fa-exclamation-triangle"
+    };
+
+    // Summarize clusters
+    const clusterSummary = {};
+    clustersData.forEach(customer => {
+        const clusterId = customer.cluster !== undefined ? customer.cluster : 3;
+        if (!clusterSummary[clusterId]) {
+            clusterSummary[clusterId] = { count: 0, totalRevenue: 0, totalFrequency: 0, customers: [] };
+        }
+        const revenue = customer.Monetary || 0;
+        const frequency = customer.Frequency || 0;
+        clusterSummary[clusterId].count++;
+        clusterSummary[clusterId].totalRevenue += revenue;
+        clusterSummary[clusterId].totalFrequency += frequency;
+        clusterSummary[clusterId].customers.push(customer);
+    });
+
+    const totalAllRevenue = Object.values(clusterSummary).reduce((sum, c) => sum + c.totalRevenue, 0);
+
+    // Build transformed clusters array
+    return Object.entries(clusterSummary).map(([id, stats]) => {
+        const clusterId = parseInt(id);
+        return {
+            id: clusterId,
+            name: clusterNames[clusterId] || `Cluster ${id}`,
+            color: clusterColors[clusterId] || "#95a5a6",
+            icon: clusterIcons[clusterId] || "fa-users",
+            customerCount: stats.count,
+            totalRevenue: stats.totalRevenue,
+            revenuePercentage: totalAllRevenue > 0 ? (stats.totalRevenue / totalAllRevenue * 100) : 0,
+            avgFrequency: stats.count > 0 ? (stats.totalFrequency / stats.count).toFixed(1) : "0"
+        };
+    });
+}
+    // =========================
+    // RENDER CUSTOMER SEGMENTATION
+    // =========================
+    function renderCustomerSegmentation() {
+        console.log('Rendering customer segmentation...');
+        renderClusterKPIs();
+        renderCustomerDistributionChart();
+        renderRevenueChart();
+    }
+
+    // === Cluster KPI Cards ===
+    function renderClusterKPIs() {
+        const clusters = customerData.clusters;
+        const kpiGrid = document.getElementById("clusterKpis");
+        
+        if (!kpiGrid) {
+            console.error('KPI grid element not found');
+            return;
+        }
+        
+        if (!clusters.length) {
+            kpiGrid.innerHTML = '<div class="kpi-card"><div class="kpi-value">No cluster data available</div></div>';
+            return;
+        }
+
+        kpiGrid.innerHTML = clusters.map(cluster => `
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <div class="kpi-title">${cluster.name}</div>
+                    <div class="kpi-icon" style="background: rgba(26, 188, 156, 0.1); color: #1abc9c;">
+                        <i class="fas ${cluster.icon}"></i>
+                    </div>
+                </div>
+                <div class="kpi-value">₹${cluster.totalRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+                <div class="kpi-trend">
+                    <span>${cluster.customerCount} customers</span>
+                    <span class="revenue-badge">${cluster.revenuePercentage.toFixed(1)}% of total</span>
+                </div>
+            </div>
+        `).join('');
+        
+        console.log('KPI cards rendered');
+    }
+
+    // === Customer Distribution Chart ===
+    function renderCustomerDistributionChart() {
+        const ctx = document.getElementById("customerDistributionChart");
+        
+        if (!ctx) {
+            console.error('Customer distribution chart canvas not found');
+            return;
+        }
+
+        const clusters = customerData.clusters;
+
+        if (!clusters.length) {
+            console.warn("No cluster data available for Customer Distribution Chart");
+            ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+            return;
+        }
+
+        // Destroy existing chart instance if exists
+        if (customerDistributionChart instanceof Chart) {
+            customerDistributionChart.destroy();
+        }
+
+        try {
+            customerDistributionChart = new Chart(ctx, {
+                type: "doughnut",
+                data: {
+                    labels: clusters.map(c => c.name),
+                    datasets: [{
+                        label: "Customers",
+                        data: clusters.map(c => c.customerCount),
+                        backgroundColor: clusters.map(c => c.color),
+                        borderColor: "#ffffff",
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: "right",
+                            labels: {
+                                boxWidth: 15,
+                                font: { size: 13 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const cluster = clusters[context.dataIndex];
+                                    return `${cluster.name}: ${cluster.customerCount} customers`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: "65%"
+                }
+            });
+            console.log('Customer distribution chart rendered successfully');
+        } catch (error) {
+            console.error('Error rendering customer distribution chart:', error);
+        }
+    }
+
+    // === Revenue Chart ===
+    function renderRevenueChart() {
+        const ctx = document.getElementById("revenueChart");
+        
+        if (!ctx) {
+            console.error('Revenue chart canvas not found');
+            return;
+        }
+
+        const clusters = customerData.clusters;
+
+        if (!clusters.length) {
+            console.warn("No cluster data available for Revenue Chart");
+            ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+            return;
+        }
+
+        // Destroy existing chart instance if exists
+        if (revenueChart instanceof Chart) {
+            revenueChart.destroy();
+        }
+
+        try {
+            revenueChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: clusters.map(c => c.name),
+                    datasets: [{
+                        label: "Total Revenue (₹)",
+                        data: clusters.map(c => c.totalRevenue),
+                        backgroundColor: clusters.map(c => c.color),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 13 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: "rgba(0,0,0,0.05)" },
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `₹${context.raw.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Revenue chart rendered successfully');
+        } catch (error) {
+            console.error('Error rendering revenue chart:', error);
+        }
+    }
+
+    // === Top Customers Table ===
+    function renderTopCustomersTable() {
+        const tbody = document.getElementById("topCustomersBody");
+        if (!tbody) {
+            console.error('Top customers table body not found');
+            return;
+        }
+
+        const topCustomers = customerData.topCustomers || [];
+        
+        console.log('Rendering top customers table with', topCustomers.length, 'customers');
+        
+        if (topCustomers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No customer data available</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = topCustomers.map(customer => {
+            let clusterClass = '';
+            let clusterName = '';
+            const totalSpent = parseFloat(customer.total_spent) || 0;
+            const totalOrders = parseInt(customer.total_orders) || 0;
+            const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
+            
+            // Use cluster_id from backend if available, otherwise calculate
+            const clusterId = customer.cluster_id !== undefined ? customer.cluster_id : 
+                (totalSpent > 10000 ? 0 : 
+                 totalOrders > 15 ? 1 : 
+                 totalSpent < 1000 || totalOrders < 5 ? 2 : 3);
+            
+            // Set cluster class and name based on cluster_id
+            if (clusterId === 0) { clusterClass = 'cluster-high-value'; clusterName = 'High Value'; }
+            else if (clusterId === 1) { clusterClass = 'cluster-loyal'; clusterName = 'Loyal'; }
+            else if (clusterId === 2) { clusterClass = 'cluster-new'; clusterName = 'New'; }
+            else { clusterClass = 'cluster-at-risk'; clusterName = 'At Risk'; }
+            
+            return `
+                <tr>
+                    <td>${customer.customer_code || 'N/A'}</td>
+                    <td>${customer.gender || 'N/A'}</td>
+                    <td>${customer.age || 'N/A'}</td>
+                    <td>₹${totalSpent.toFixed(2)}</td>
+                    <td>${totalOrders}</td>
+                    <td>₹${avgOrderValue.toFixed(2)}</td>
+                    <td><span class="cluster-badge ${clusterClass}">${clusterName}</span></td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    // =========================
+    // UI HELPERS
+    // =========================
+    function showLoadingState() {
+        const loadingState = document.getElementById("loadingState");
+        const dataContent = document.getElementById("dataContent");
+        const errorState = document.getElementById("errorState");
+        
+        if (loadingState) loadingState.style.display = "flex";
+        if (dataContent) dataContent.style.display = "none";
+        if (errorState) errorState.style.display = "none";
+    }
+
+    function hideLoadingState() {
+        const loadingState = document.getElementById("loadingState");
+        if (loadingState) loadingState.style.display = "none";
+    }
+
+    function showErrorState() {
+        const errorState = document.getElementById("errorState");
+        const dataContent = document.getElementById("dataContent");
+        const loadingState = document.getElementById("loadingState");
+        
+        if (errorState) errorState.style.display = "block";
+        if (dataContent) dataContent.style.display = "none";
+        if (loadingState) loadingState.style.display = "none";
+    }
+
+    function hideErrorState() {
+        const errorState = document.getElementById("errorState");
+        if (errorState) errorState.style.display = "none";
+    }
+
+    function showDataContent() {
+        const dataContent = document.getElementById("dataContent");
+        if (dataContent) dataContent.style.display = "block";
+    }
+
+    function exportChart(chartId, filename) {
+        const canvas = document.getElementById(chartId);
+        if (!canvas) {
+            console.error('Chart canvas not found for export:', chartId);
+            return;
+        }
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    function toggleFullscreen(chartId) {
+        const canvas = document.getElementById(chartId);
+        if (!canvas) {
+            console.error('Chart canvas not found for fullscreen:', chartId);
+            return;
+        }
+        if (canvas.requestFullscreen) canvas.requestFullscreen();
+        else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
+        else if (canvas.msRequestFullscreen) canvas.msRequestFullscreen();
+    }
+
+    // =========================
+    // EVENT LISTENERS
+    // =========================
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log('DOM loaded, initializing dashboard...');
+        
+        // Initialize the dashboard
+        loadCustomerSegmentationData();
+
+        // Navigation setup
+        const menuItems = document.querySelectorAll('.menu-item');
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        const sidebar = document.querySelector('.sidebar');
+        
+        menuItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const pageId = this.getAttribute('data-page');
+                
+                // Update active menu item
+                menuItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Redirect to the corresponding page
+                if (pageId === 'home') {
+                    window.location.href = 'home.html';
+                } else if (pageId === 'customers') {
+                    // Already on customers page
+                } else if (pageId === 'sales') {
+                    window.location.href = 'sales.html';
+                } else if (pageId === 'forecasts') {
+                    window.location.href = 'Forecast.html';
+                }
+                
+                // Close sidebar on mobile after selection
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        });
+        
+        // Mobile menu toggle
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
+        }
+
+        // Filter buttons for clusters
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentClusterFilter = this.getAttribute('data-cluster');
+                console.log('Filter changed to:', currentClusterFilter);
+                
+                // Load top customers for the selected cluster
+                loadTopCustomers(currentClusterFilter);
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('customerSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                console.log('Searching for:', searchTerm);
+                // Implement search functionality here if needed
+            });
+        }
+
+        // Retry button
+        const retryButton = document.getElementById('retryButton');
+        if (retryButton) {
+            retryButton.addEventListener('click', function() {
+                loadCustomerSegmentationData();
+            });
+        }
+    });
+
+    // =========================
+    // ERROR HANDLING
+    // =========================
+    window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+        showErrorState();
+    });
+
+    // Handle unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        showErrorState();
+    });
+</script>
+
+</body>
+</html>
