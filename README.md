@@ -1,7 +1,6 @@
-##
-#Retail Analytics Platform
-##
-Overview
+# Retail Analytics Platform
+
+## Overview
 This repository contains a full‑stack retail analytics platform with:
 - Backend (Node.js + Express + PostgreSQL) exposing REST APIs for KPIs, analytics, catalog and ML integration
 - ML service (Python + FastAPI) for forecasting and customer clustering (RFM/K‑Means)
