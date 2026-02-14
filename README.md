@@ -1,5 +1,5 @@
 ##
-Retail Analytics Platform
+#Retail Analytics Platform
 ##
 Overview
 This repository contains a full‑stack retail analytics platform with:
